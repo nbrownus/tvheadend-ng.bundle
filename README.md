@@ -15,7 +15,7 @@ to keep on coding and fixing bugs.
 
 Thanks in advance
 
-[https://www.paypal.com/cgi-bin/webscr?no_note=0&lc=US&business=realriot%40realriot.de&item_name=GitHub+-+tvheadend-ng.bundle&cmd=_donations&currency_code=USD '''DONATE NOW VIA PAYPAL''']
+[DONATE NOW VIA PAYPAL](https://www.paypal.com/cgi-bin/webscr?no_note=0&lc=US&business=realriot%40realriot.de&item_name=GitHub+-+tvheadend-ng.bundle&cmd=_donations&currency_code=USD)
 
 ### Latest notes
 
