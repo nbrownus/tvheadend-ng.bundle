@@ -38,7 +38,7 @@ def MainMenu():
 
     result = checkConfig()
     if result['status'] == True:
-        if debug == True: Log("Configuration OK!")
+        Log.Debug("Configuration OK!")
         oc.title1 = TEXT_TITLE
         oc.header = None
         oc.message = None 
@@ -51,7 +51,7 @@ def MainMenu():
             oc.add(DirectoryObject(key=Callback(getRecordings, title=L('recordings')), title=L('recordings'), thumb=ICON_BOUQUETS))
         oc.add(PrefsObject(title=L('preferences')))
     else:
-        if debug == True: Log("Configuration error! Displaying error message: " + result['message'])
+        Log.Debug("Configuration error! Displaying error message: " + result['message'])
         oc.title1 = None
         oc.header = L('header_attention')
                 oc.message = result['message']
@@ -76,7 +76,7 @@ def checkConfig():
         # To validate the tvheadend connection and api version.
         json_data = getTVHeadendJson('getServerVersion', '')
         if json_data != False:
-            # if debug == True: Log("Server running API version: " + json_data['api_version'])
+            # Log.Debug("Server running API version: " + json_data['api_version'])
             if json_data['api_version'] >= req_api_version:
                 result['status'] = True
                 result['message'] = ''
@@ -101,7 +101,7 @@ def checkConfig():
 
 @route(PLUGIN_PREFIX + '/getTVHeadendJson')
 def getTVHeadendJson(apirequest, arg1):
-    if debug == True: Log("JSON-Request: " + apirequest)
+    Log.Debug("JSON-Request: " + apirequest)
     api = dict(
         getChannelGrid='api/channel/grid?start=0&limit=999999',
         getEpgGrid='api/epg/events/grid?start=0&limit=2000',
@@ -129,9 +129,10 @@ def getTVHeadendJson(apirequest, arg1):
                 raise Exception("JSON encoding error")
 
     except Exception, e:
-        if debug == True: Log("JSON-Request failed: " + str(e))
+        Log.Debug("JSON-Request failed: " + str(e))
         return False
-    if debug == True: Log("JSON-Request successfull!")
+    
+    Log.Debug("JSON-Request successfull!")
     return json_data
 
 ####################################################################################################
@@ -148,7 +149,7 @@ def getEPG():
 def getServices():
     json_data = getTVHeadendJson('getServiceGrid','')
     if json_data == False:
-        if debug == True: Log("Failed to fetch DVB services!")
+        Log.Debug("Failed to fetch DVB services!")
     return json_data
 
 @route(PLUGIN_PREFIX + '/getChannelInfo')
@@ -163,7 +164,7 @@ def getChannelInfo(uuid, services, json_epg, json_services):
         'epg_stop':0,
         'epg_summary':'',
     }
-    if debug == True: Log("Merging channel informations (EPG and services) for channel uuid: " + uuid)
+    Log.Debug("Merging channel informations (EPG and services) for channel uuid: " + uuid)
     if json_epg == False: Log("No EPG informations available for channel uuid: " + uuid)
 
     # Get dvb informations.
@@ -174,10 +175,10 @@ def getChannelInfo(uuid, services, json_epg, json_services):
 
     # Check if we have data within the json_epg object.
     if json_epg != False and json_epg.get('entries'):
-        if debug == True: Log("Looking up EPG informations for channel uuid: " + uuid)
+        Log.Debug("Looking up EPG informations for channel uuid: " + uuid)
         for epg in json_epg['entries']:
             if epg['channelUuid'] == uuid and time.time() > int(epg['start']) and time.time() < int(epg['stop']):
-                if debug == True: Log("Found EPG informations for channel uuid: " + uuid)
+                Log.Debug("Found EPG informations for channel uuid: " + uuid)
                 if epg.get('title'):
                      result['epg_title'] = epg['title']
                 if epg.get('description'):
@@ -202,15 +203,15 @@ def getChannelsByTag(title):
         tagList.message = None
         for tag in sorted(json_data['entries'], key=lambda t: t['name']):
             if tag['internal'] == False:
-                if debug == True: Log("Getting channellist for tag: " + tag['name'])
+                Log.Debug("Getting channellist for tag: " + tag['name'])
                 tagList.add(DirectoryObject(key=Callback(getChannels, title=tag['name'], tag=tag['uuid']), title=tag['name']))
     else:
-        if debug == True: Log("Could not create tagelist! Showing error.")
+        Log.Debug("Could not create tagelist! Showing error.")
         tagList.title1 = None
         tagList.header = L('error')
         tagList.message = L('error_request_failed') 
 
-    if debug == True: Log("Count of configured tags within TV-Headend: " + str(len(tagList)))
+    Log.Debug("Count of configured tags within TV-Headend: " + str(len(tagList)))
     if ( len(tagList) == 0 ):
         tagList.header = L('attention')
         tagList.message = L('error_no_tags')
@@ -232,14 +233,14 @@ def getChannels(title, tag=int(0)):
                 tags = channel['tags']
                 for tids in tags:
                     if (tag == tids):
-                        if debug == True: Log("Got channel with tag: " + channel['name'])
+                        Log.Debug("Got channel with tag: " + channel['name'])
                         chaninfo = getChannelInfo(channel['uuid'], channel['services'], json_epg, json_services)
                         channelList.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
             else:
                 chaninfo = getChannelInfo(channel['uuid'], channel['services'], json_epg, json_services)
                 channelList.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
     else:
-        if debug == True: Log("Could not create channellist! Showing error.")
+        Log.Debug("Could not create channellist! Showing error.")
         channelList.title1 = None;
         channelList.header = L('error')
         channelList.message = L('error_request_failed')
@@ -255,15 +256,15 @@ def getRecordings(title):
         recordingsList.header = None
         recordingsList.message = None
         for recording in sorted(json_data['entries'], key=lambda t: t['title']):
-            if debug == True: Log("Got recording with title: " + str(recording['title']))
+            Log.Debug("Got recording with title: " + str(recording['title']))
             recordingsList.add(createRecordingObject(recording, Client.Product, Client.Platform))
     else:
-        if debug == True: Log("Could not create recordings list! Showing error.")
+        Log.Debug("Could not create recordings list! Showing error.")
         recordingsList.title1 = None
         recordingsList.header = L('error')
         recordingsList.message = L('error_request_failed') 
 
-    if debug == True: Log("Count of recordings within TV-Headend: " + str(len(recordingsList)))
+    Log.Debug("Count of recordings within TV-Headend: " + str(len(recordingsList)))
     if ( len(recordingsList) == 0 ):
         recordingsList.header = L('attention')
         recordingsList.message = L('error_no_recordings')
@@ -278,7 +279,7 @@ def PlayMedia(url):
 @route(PLUGIN_PREFIX + '/createMediaContainer')
 def createMediaContainer(mctype, args):
     mco = None
-    if debug == True: Log("Building VideoClip object")
+    Log.Debug("Building VideoClip object")
     if mctype == 'videoclip':
         mco = VideoClipObject(
                 key = args['key'],
@@ -290,7 +291,7 @@ def createMediaContainer(mctype, args):
                 art = args['art'],
                 source_title = 'TVHeadend',
         )
-    if debug == True: Log("Building AudioTrack object")
+    Log.Debug("Building AudioTrack object")
     if mctype == 'audiotrack':
         mco = TrackObject(
             key = args['key'],
@@ -333,9 +334,9 @@ def createMediaContainer(mctype, args):
 
     # Log the product and platform which requested a stream.
     if args['cproduct'] != None and args['cplatform'] != None:
-        if debug == True: Log("Created MediaObject for plex product: " + args['cproduct'] + " on " + args['cplatform'])
+        Log.Debug("Created MediaObject for plex product: " + args['cproduct'] + " on " + args['cplatform'])
     else:
-        if debug == True: Log("Created MediaObject for plex product: UNDEFINED")
+        Log.Debug("Created MediaObject for plex product: UNDEFINED")
 
     return mco
 
@@ -349,11 +350,11 @@ def addMediaObject(mco, vurl):
             #audio_codec = AudioCodec.AAC,
         )
     mco.add(media)
-    if debug == True: Log("Creating MediaObject for streaming with URL: " + vurl)
+    Log.Debug("Creating MediaObject for streaming with URL: " + vurl)
     return mco
 
 def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = False, checkFiles = 0):
-    if debug == True: Log("Creating TVChannelObject. Container: " + str(container))
+    Log.Debug("Creating TVChannelObject. Container: " + str(container))
     name = channel['name'] 
     id = channel['uuid']
     summary = None
@@ -379,7 +380,7 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
             Log.Info("Setting banner to: " + str(banner))
 
     # Add epg data. Otherwise leave the fields blank by default.
-    if debug == True: Log("Info for mediaobject: " + str(chaninfo))
+    Log.Debug("Info for mediaobject: " + str(chaninfo))
     if chaninfo['epg_title'] != "" and chaninfo['epg_start'] != 0 and chaninfo['epg_stop'] != 0 and chaninfo['epg_duration'] != 0:
         if container == False:
             name = name + " (" + chaninfo['epg_title'] + ") - (" + chaninfo['epg_start'] + " - " + chaninfo['epg_stop'] + ")"
@@ -399,7 +400,7 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
     args['cplatform'] = cplatform
     args['url'] = url
     if chaninfo['service_type'] != '2':
-        if debug == True: Log("Creating media object with type: VIDEO")
+        Log.Debug("Creating media object with type: VIDEO")
         args['key'] = Callback(createTVChannelObject, channel = channel, chaninfo = chaninfo, cproduct = cproduct, cplatform = cplatform, container = True)
         args['rating_key'] = id
         args['title'] = name
@@ -410,7 +411,7 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
         args['epg_title'] = chaninfo['epg_title']
         mco = createMediaContainer('videoclip', args)
     else:
-        if debug == True: Log("Creating media object with type: AUDIO")
+        Log.Debug("Creating media object with type: AUDIO")
         args['key'] = Callback(createTVChannelObject, channel = channel, chaninfo = chaninfo, cproduct = cproduct, cplatform = cplatform, container = True)
         args['rating_key'] = id
         args['title'] = name
@@ -429,7 +430,7 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
     return mco
 
 def createRecordingObject(recording, cproduct, cplatform, container = False):
-    if debug == True: Log("Creating RecordingObject. Container: " + str(container))
+    Log.Debug("Creating RecordingObject. Container: " + str(container))
     name = recording['disp_title']
     id = recording['uuid'] 
     summary = None
@@ -452,7 +453,7 @@ def createRecordingObject(recording, cproduct, cplatform, container = False):
                         Log.Info("Setting banner to: " + str(banner))
 
     # Add recording informations. Otherwise leave the fields blank by default.
-    if debug == True: Log("Info for mediaobject: " + str(recording))
+    Log.Debug("Info for mediaobject: " + str(recording))
     if recording['disp_title'] != "" and recording['start'] != 0 and recording['stop'] != 0:
         start = datetime.datetime.fromtimestamp(recording['start']).strftime('%d-%m-%Y %H:%M')
         stop = datetime.datetime.fromtimestamp(recording['stop']).strftime('%d-%m-%Y %H:%M')
@@ -474,7 +475,7 @@ def createRecordingObject(recording, cproduct, cplatform, container = False):
     args['cplatform'] = cplatform
     args['url'] = url
 
-    if debug == True: Log("Creating media object with type: VIDEO")
+    Log.Debug("Creating media object with type: VIDEO")
     args['key'] = Callback(createRecordingObject, recording = recording, cproduct = cproduct, cplatform = cplatform, container = True)
     args['rating_key'] = id
     args['title'] = name
