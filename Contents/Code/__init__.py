@@ -503,7 +503,7 @@ def getConfig():
     URL = 'http://api.themoviedb.org/3/configuration?api_key=%s' % Prefs['tvheadend_themovieDB_key']
 
     try:
-        config = JSON.ObjectFromURL( URL , headers=headers , values=None )
+        config = JSON.ObjectFromURL(URL, headers=headers, values=None)
     except:
         Log.Warn("Error connecting to themovieDB API")
         return
@@ -519,7 +519,7 @@ def searchDB(query):
         }
     URL = 'http://api.themoviedb.org/3/search/multi?api_key=%s&query=%s' % (Prefs['tvheadend_themovieDB_key'], String.Quote(query))
     try:
-        return JSON.ObjectFromURL( URL , headers=headers , values=None )
+        return JSON.ObjectFromURL(URL, headers=headers, values=None)
     except Exception, e:
         Log("Error: failed to get results -> " + str(e))
         return
@@ -530,20 +530,22 @@ def getArt(show):
     banner = None
 
     API_RESULTS = searchDB(show)
-    if debug_db == True: print json.dumps(API_RESULTS, indent=4, separators=(',',': '))
+    if debug_db:
+        print json.dumps(API_RESULTS, indent=4, separators=(',',': '))
+
     if BASE_URL is None:
         getConfig()
-        if API_RESULTS != None and int(API_RESULTS['total_results']) > 0 :
+        if API_RESULTS is not None and int(API_RESULTS['total_results']) > 0:
             for result in API_RESULTS['results']:
                 try:
-                    if result['name'] == show and ( result['poster_path'] != None or result['backdrop_path'] != None ):
+                    if result['name'] == show and (result['poster_path'] is not None or result['backdrop_path'] is not None):
                         poster = result['poster_path']
                         banner = result['backdrop_path']
                         Log.Debug("Found result on themovieDB: { name: " + str(result['name']) + ", poster: " + str(poster) + ", banner: " + str(banner) + " }")
                         break
                 except KeyError:
                     try:
-                        if result['title'] == show and ( result['poster_path'] != 'null' or result['backdrop_path'] != 'null' ):
+                        if result['title'] == show and (result['poster_path'] != 'null' or result['backdrop_path'] != 'null'):
                             poster = result['poster_path']
                             banner = result['backdrop_path']
                             Log.Debug("Found result on themovieDB: { title: " + str(result['title']) + ", poster: " + str(poster) + ", banner: " + str(banner) + " }")
@@ -554,16 +556,16 @@ def getArt(show):
                     pass
     else:
         Log.Info("No Results on themovieDB")
-        return { 'poster': '', 'banner': '' }
+        return {'poster': '', 'banner': ''}
 
-    if poster != 'null' and poster != None:
+    if poster != 'null' and poster is not None:
         poster_url = str(BASE_URL) + 'w342' + str(poster)
     else:
         poster_url = ''
 
-    if banner != 'null' and banner != None:
+    if banner != 'null' and banner is not None:
         banner_url = str(BASE_URL) + 'original' + str(banner)
     else:
         banner_url = ''
 
-    return { 'poster': poster_url, 'banner': banner_url }
+    return {'poster': poster_url, 'banner': banner_url}
