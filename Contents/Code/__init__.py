@@ -1,5 +1,4 @@
-import base64, simplejson, time, datetime
-json = simplejson
+import base64, simplejson as json, time, datetime
 
 # Static text. 
 TEXT_NAME = 'TV-Headend Next Generation'
@@ -54,7 +53,7 @@ def MainMenu():
         Log.Debug("Configuration error! Displaying error message: " + result['message'])
         oc.title1 = None
         oc.header = L('header_attention')
-                oc.message = result['message']
+        oc.message = result['message']
         oc.add(PrefsObject(title=L('preferences')))
 
     return oc
@@ -244,7 +243,7 @@ def getChannels(title, tag=int(0)):
         channelList.title1 = None;
         channelList.header = L('error')
         channelList.message = L('error_request_failed')
-           return channelList
+        return channelList
 
 @route(PLUGIN_PREFIX + '/getRecordings')
 def getRecordings(title):
@@ -493,60 +492,63 @@ def createRecordingObject(recording, cproduct, cplatform, container = False):
 
 ####################################################################################################
 def getConfig():
-        global BASE_URL, SIZES
-        headers = {
-                'Accept': 'application/json',
-                }
-        URL = 'http://api.themoviedb.org/3/configuration?api_key=%s' % Prefs['tvheadend_themovieDB_key']
+    global BASE_URL, SIZES
+    headers = {
+        'Accept': 'application/json',
+    }
+
+    URL = 'http://api.themoviedb.org/3/configuration?api_key=%s' % Prefs['tvheadend_themovieDB_key']
+
     try:
         config = JSON.ObjectFromURL( URL , headers=headers , values=None )
     except:
         Log.Warn("Error connecting to themovieDB API")
         return
-        BASE_URL = config['images']['base_url']
-        SIZES = config['images']['poster_sizes']
-        return
+
+    BASE_URL = config['images']['base_url']
+    SIZES = config['images']['poster_sizes']
+    return
 
 def searchDB(query):
     Log("Searching themovieDB for: " + str(query))
-        headers = {
-                'Accept': 'application/json'
-                }
-        URL = 'http://api.themoviedb.org/3/search/multi?api_key=%s&query=%s' % (Prefs['tvheadend_themovieDB_key'], String.Quote(query))
-        try:
+    headers = {
+        'Accept': 'application/json'
+        }
+    URL = 'http://api.themoviedb.org/3/search/multi?api_key=%s&query=%s' % (Prefs['tvheadend_themovieDB_key'], String.Quote(query))
+    try:
         return JSON.ObjectFromURL( URL , headers=headers , values=None )
     except Exception, e:
         Log("Error: failed to get results -> " + str(e))
         return
 
 def getArt(show):
-        global BASE_URL
+    global BASE_URL
     poster = None
     banner = None
 
     API_RESULTS = searchDB(show)
-        if debug_db == True: print json.dumps(API_RESULTS, indent=4, separators=(',',': '))
+    if debug_db == True: print json.dumps(API_RESULTS, indent=4, separators=(',',': '))
     if BASE_URL is None:
         getConfig()
         if API_RESULTS != None and int(API_RESULTS['total_results']) > 0 :
-        for result in API_RESULTS['results']:
-            try:
-                if result['name'] == show and ( result['poster_path'] != None or result['backdrop_path'] != None ):
-                    poster = result['poster_path']
-                    banner = result['backdrop_path']
-                    Log.Debug("Found result on themovieDB: { name: " + str(result['name']) + ", poster: " + str(poster) + ", banner: " + str(banner) + " }")
-                    break
-            except KeyError:
+            for result in API_RESULTS['results']:
                 try:
-                    if result['title'] == show and ( result['poster_path'] != 'null' or result['backdrop_path'] != 'null' ):
-                                            poster = result['poster_path']
-                                            banner = result['backdrop_path']
-                        Log.Debug("Found result on themovieDB: { title: " + str(result['title']) + ", poster: " + str(poster) + ", banner: " + str(banner) + " }")
-                                            break
+                    if result['name'] == show and ( result['poster_path'] != None or result['backdrop_path'] != None ):
+                        poster = result['poster_path']
+                        banner = result['backdrop_path']
+                        Log.Debug("Found result on themovieDB: { name: " + str(result['name']) + ", poster: " + str(poster) + ", banner: " + str(banner) + " }")
+                        break
+                except KeyError:
+                    try:
+                        if result['title'] == show and ( result['poster_path'] != 'null' or result['backdrop_path'] != 'null' ):
+                            poster = result['poster_path']
+                            banner = result['backdrop_path']
+                            Log.Debug("Found result on themovieDB: { title: " + str(result['title']) + ", poster: " + str(poster) + ", banner: " + str(banner) + " }")
+                            break
+                    except:
+                        pass
                 except:
                     pass
-            except:
-                pass
     else:
         Log.Info("No Results on themovieDB")
         return { 'poster': '', 'banner': '' }
