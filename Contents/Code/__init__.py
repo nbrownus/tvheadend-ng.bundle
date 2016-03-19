@@ -345,11 +345,17 @@ def createMediaContainer(mctype, args):
 @route(PLUGIN_PREFIX + '/addMediaObject')
 def addMediaObject(mco, vurl):
     media = MediaObject(
-        optimized_for_streaming=True,
-        #parts = [PartObject(key = vurl)],
-        parts=[PartObject(key=Callback(PlayMedia, url=vurl))],
-        #video_codec = VideoCodec.H264,
-        #audio_codec = AudioCodec.AAC,
+            optimized_for_streaming=True,
+            audio_channels=6,
+            audio_codec="AC3",
+            container="mpegts",  # TODO: this can change based!
+            video_codec="mpeg2video",
+            # TODO: video_resolution = 1080 or w/e
+            # TODO: audio_codec=AudioCodec.AC3,
+            # parts = [PartObject(key = vurl)],
+            # parts=[PartObject(key=Callback(PlayMedia, url=vurl))],
+            parts=[PartObject(key=vurl)],
+            # video_codec = VideoCodec.H264,
     )
 
     mco.add(media)
@@ -531,7 +537,7 @@ def createRecordingObject(recording, cproduct, cplatform, container=False):
     args['url'] = url
 
     Log.Debug("Creating media object with type: VIDEO")
-    
+
     args['key'] = Callback(
             createRecordingObject,
             recording=recording,
