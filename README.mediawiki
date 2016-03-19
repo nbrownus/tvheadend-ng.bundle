@@ -20,3 +20,24 @@ Thanks in advance
 * This plex channel for TV-Headend needs the TV-Headend API in version 15. An error message will occur if it's the wrong version.
 * Additionally this channel supports streaming profiles provided by TV-Headend.
 * To see channel logos you have to configure your TV-Headend system to deliver them. A nice manual can be found [https://tvheadend.org/boards/5/topics/13408?r=13674#message-13674 here]
+
+=== Developing ===
+
+Make sure you have pip and virtualenv
+
+```sh
+sudo easy_install pip
+sudo pip install virtualenv
+```
+
+Setup a virtualenv to work in
+
+```sh
+virtualenv env
+```
+
+Whenever you come back to develop just reactive your virtualenv
+
+```sh
+source env/bin/activate
+```
