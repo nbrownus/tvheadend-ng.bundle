@@ -279,31 +279,33 @@ def PlayMedia(url):
 @route(PLUGIN_PREFIX + '/createMediaContainer')
 def createMediaContainer(mctype, args):
     mco = None
-    Log.Debug("Building VideoClip object")
+
     if mctype == 'videoclip':
+        Log.Debug("Building VideoClip object")
         mco = VideoClipObject(
-                key = args['key'],
-                rating_key = args['rating_key'],
-                title = args['title'],
-                summary = args['summary'],
-                duration = args['duration'],
-                thumb = args['thumb'],
-                art = args['art'],
-                source_title = 'TVHeadend',
+            key=args['key'],
+            rating_key=args['rating_key'],
+            title=args['title'],
+            summary=args['summary'],
+            duration=args['duration'],
+            thumb=args['thumb'],
+            art=args['art'],
+            source_title='TVHeadend',
         )
-    Log.Debug("Building AudioTrack object")
+
     if mctype == 'audiotrack':
+        Log.Debug("Building AudioTrack object")
         mco = TrackObject(
-            key = args['key'],
-            rating_key = args['rating_key'],
-            title = args['title'],
-            summary = args['summary'],
-            duration = args['duration'],
-            thumb = args['thumb'],
-            art = args['art'],
-            artist = args['artist'],
-            album = args['album'],
-            source_title = 'TVHeadend'
+            key=args['key'],
+            rating_key=args['rating_key'],
+            title=args['title'],
+            summary=args['summary'],
+            duration=args['duration'],
+            thumb=args['thumb'],
+            art=args['art'],
+            artist=args['artist'],
+            album=args['album'],
+            source_title='TVHeadend'
         )
 
     stream_defined = False
@@ -313,12 +315,12 @@ def createMediaContainer(mctype, args):
         stream_defined = True
 
     # Custom streaming profile for iOS.
-    if stream_defined == False and (Prefs['tvheadend_custprof_ios'] != None and args['cplatform'] == "iOS"):
+    if stream_defined == False and (Prefs['tvheadend_custprof_ios'] is not None and args['cplatform'] == "iOS"):
         mco = addMediaObject(mco, args['url'] + '?profile=' + Prefs['tvheadend_custprof_ios'])
         stream_defined = True
 
     # Custom streaming profile for Android.
-    if stream_defined == False and (Prefs['tvheadend_custprof_android'] != None and args['cplatform'] == "Android"):
+    if stream_defined == False and (Prefs['tvheadend_custprof_android'] is not None and args['cplatform'] == "Android"):
         mco = addMediaObject(mco, args['url'] + '?profile=' + Prefs['tvheadend_custprof_android'])
         stream_defined = True
 
@@ -343,21 +345,22 @@ def createMediaContainer(mctype, args):
 @route(PLUGIN_PREFIX + '/addMediaObject')
 def addMediaObject(mco, vurl):
     media = MediaObject(
-            optimized_for_streaming = True,
-            #parts = [PartObject(key = vurl)],
-            parts = [PartObject(key = Callback(PlayMedia, url=vurl))],
-            #video_codec = VideoCodec.H264,
-            #audio_codec = AudioCodec.AAC,
-        )
+        optimized_for_streaming=True,
+        #parts = [PartObject(key = vurl)],
+        parts=[PartObject(key=Callback(PlayMedia, url=vurl))],
+        #video_codec = VideoCodec.H264,
+        #audio_codec = AudioCodec.AAC,
+    )
+
     mco.add(media)
     Log.Debug("Creating MediaObject for streaming with URL: " + vurl)
     return mco
 
 @route(PLUGIN_PREFIX + '/createTVChannelObject')
-def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = False, checkFiles = 0):
+def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container=False):
     Log.Debug("Creating TVChannelObject. Container: " + str(container))
     name = channel['name'] 
-    id = channel['uuid']
+    show_id = channel['uuid']
     summary = None
     duration = None
 
@@ -365,7 +368,14 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
     icon = None 
     try:
         if Prefs['tvheadend_channelicons'] == True and channel['icon_public_url'].startswith('imagecache'):
-            icon = 'http://%s:%s@%s:%s%s%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], channel['icon_public_url'])
+            icon = 'http://%s:%s@%s:%s%s%s' % (
+                Prefs['tvheadend_user'],
+                Prefs['tvheadend_pass'],
+                Prefs['tvheadend_host'],
+                Prefs['tvheadend_web_port'],
+                Prefs['tvheadend_web_rootpath'],
+                channel['icon_public_url']
+            )
     except KeyError:
         pass
 
@@ -383,27 +393,48 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
     # Add epg data. Otherwise leave the fields blank by default.
     Log.Debug("Info for mediaobject: " + str(chaninfo))
     if chaninfo['epg_title'] != "" and chaninfo['epg_start'] != 0 and chaninfo['epg_stop'] != 0 and chaninfo['epg_duration'] != 0:
-        if container == False:
-            name = name + " (" + chaninfo['epg_title'] + ") - (" + chaninfo['epg_start'] + " - " + chaninfo['epg_stop'] + ")"
-            summary = chaninfo['epg_title'] + "\n\n" + chaninfo['epg_description'] 
-        if container == True:
-            summary = chaninfo['epg_title'] + "\n\n" + chaninfo['epg_description'] + "\n\n" + chaninfo['epg_start'] + " - " + chaninfo['epg_stop']
+        if container:
+            summary = chaninfo['epg_title'] + \
+                      "\n\n" + chaninfo['epg_description'] + "\n\n" + \
+                      chaninfo['epg_start'] + " - " + chaninfo['epg_stop']
+        else:
+            name = name + " (" + chaninfo['epg_title'] + ") - (" + chaninfo['epg_start'] + \
+                   " - " + chaninfo['epg_stop'] + ")"
+            summary = chaninfo['epg_title'] + "\n\n" + chaninfo['epg_description']
+
         duration = chaninfo['epg_duration']
 
     # Build streaming url.
     url_structure = 'stream/channel'
-    url = 'http://%s:%s@%s:%s%s%s/%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], url_structure, id)
+    url = 'http://%s:%s@%s:%s%s%s/%s' % (
+        Prefs['tvheadend_user'],
+        Prefs['tvheadend_pass'],
+        Prefs['tvheadend_host'],
+        Prefs['tvheadend_web_port'],
+        Prefs['tvheadend_web_rootpath'],
+        url_structure,
+        show_id
+    )
 
     # Create and return MediaContainer.
-    mco = None
     args = dict()
     args['cproduct'] = cproduct
     args['cplatform'] = cplatform
     args['url'] = url
+
     if chaninfo['service_type'] != '2':
         Log.Debug("Creating media object with type: VIDEO")
-        args['key'] = Callback(createTVChannelObject, channel = channel, chaninfo = chaninfo, cproduct = cproduct, cplatform = cplatform, container = True)
-        args['rating_key'] = id
+
+        args['key'] = Callback(
+                createTVChannelObject,
+                channel=channel,
+                chaninfo=chaninfo,
+                cproduct=cproduct,
+                cplatform=cplatform,
+                container=True
+        )
+
+        args['rating_key'] = show_id
         args['title'] = name
         args['summary'] = summary
         args['duration'] = duration
@@ -413,8 +444,17 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
         mco = createMediaContainer('videoclip', args)
     else:
         Log.Debug("Creating media object with type: AUDIO")
-        args['key'] = Callback(createTVChannelObject, channel = channel, chaninfo = chaninfo, cproduct = cproduct, cplatform = cplatform, container = True)
-        args['rating_key'] = id
+
+        args['key'] = Callback(
+                createTVChannelObject,
+                channel=channel,
+                chaninfo=chaninfo,
+                cproduct=cproduct,
+                cplatform=cplatform,
+                container=True
+        )
+
+        args['rating_key'] = show_id
         args['title'] = name
         args['summary'] = summary
         args['duration'] = duration
@@ -425,61 +465,82 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
         mco = createMediaContainer('audiotrack', args)
 
     if container:
-        return ObjectContainer(objects = [mco])
-    else:
-        return mco
+        return ObjectContainer(objects=[mco])
+
     return mco
 
 @route(PLUGIN_PREFIX + '/createRecordingObject')
-def createRecordingObject(recording, cproduct, cplatform, container = False):
+def createRecordingObject(recording, cproduct, cplatform, container=False):
     Log.Debug("Creating RecordingObject. Container: " + str(container))
     name = recording['disp_title']
-    id = recording['uuid'] 
+    show_id = recording['uuid']
     summary = None
-    duration = None 
+    duration = None
+    banner = None
 
     # Handle recording icon.
     icon = None
     if Prefs['tvheadend_channelicons'] == True and recording['channel_icon'].startswith('imagecache'):
-        icon = 'http://%s:%s@%s:%s%s%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], recording['channel_icon'])
+        icon = 'http://%s:%s@%s:%s%s%s' % (
+            Prefs['tvheadend_user'],
+            Prefs['tvheadend_pass'],
+            Prefs['tvheadend_host'],
+            Prefs['tvheadend_web_port'],
+            Prefs['tvheadend_web_rootpath'],
+            recording['channel_icon']
+        )
 
         #themovieDB
-        banner = None
         if Prefs['tvheadend_use_themovieDB']:
-                tempArt = getArt(name)
-                if tempArt['poster'] != '':
-                        icon = tempArt['poster']
-                        Log.Info("Setting icon to: " + str(icon))
-                if tempArt['banner'] != '':
-                        banner = tempArt['banner']
-                        Log.Info("Setting banner to: " + str(banner))
+            tempArt = getArt(name)
+            if tempArt['poster'] != '':
+                icon = tempArt['poster']
+                Log.Info("Setting icon to: " + str(icon))
+            if tempArt['banner'] != '':
+                banner = tempArt['banner']
+                Log.Info("Setting banner to: " + str(banner))
 
     # Add recording informations. Otherwise leave the fields blank by default.
     Log.Debug("Info for mediaobject: " + str(recording))
     if recording['disp_title'] != "" and recording['start'] != 0 and recording['stop'] != 0:
         start = datetime.datetime.fromtimestamp(recording['start']).strftime('%d-%m-%Y %H:%M')
-        stop = datetime.datetime.fromtimestamp(recording['stop']).strftime('%d-%m-%Y %H:%M')
-        duration = (recording['stop']-recording['start'])*1000
-        if container == False:
+        duration = (recording['stop'] - recording['start']) * 1000
+
+        if container:
+            summary = recording['disp_subtitle'] + "\n\n" + recording['disp_description'] + "\n\n" + start
+        else:
             name = name + " (" + start + ")"
             summary = recording['disp_subtitle']
-        if container == True:
-            summary = recording['disp_subtitle'] + "\n\n" + recording['disp_description'] + "\n\n" + start
 
     # Build streaming url.
     url_structure = 'dvrfile'
-    url = 'http://%s:%s@%s:%s%s%s/%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], url_structure, id)
+    url = 'http://%s:%s@%s:%s%s%s/%s' % (
+        Prefs['tvheadend_user'],
+        Prefs['tvheadend_pass'],
+        Prefs['tvheadend_host'],
+        Prefs['tvheadend_web_port'],
+        Prefs['tvheadend_web_rootpath'],
+        url_structure,
+        show_id
+    )
 
     # Create and return MediaContainer.
-    mco = None
     args = dict()
     args['cproduct'] = cproduct
     args['cplatform'] = cplatform
     args['url'] = url
 
     Log.Debug("Creating media object with type: VIDEO")
-    args['key'] = Callback(createRecordingObject, recording = recording, cproduct = cproduct, cplatform = cplatform, container = True)
-    args['rating_key'] = id
+    
+    args['key'] = Callback(
+            createRecordingObject,
+            recording=recording,
+            cproduct=cproduct,
+            cplatform=cplatform,
+            container=True
+    )
+
+    args['rating_key'] = show_id
     args['title'] = name
     args['summary'] = summary
     args['duration'] = duration
@@ -488,9 +549,8 @@ def createRecordingObject(recording, cproduct, cplatform, container = False):
     mco = createMediaContainer('videoclip', args)
 
     if container:
-        return ObjectContainer(objects = [mco])
-    else:
-        return mco
+        return ObjectContainer(objects=[mco])
+
     return mco
 
 ####################################################################################################
