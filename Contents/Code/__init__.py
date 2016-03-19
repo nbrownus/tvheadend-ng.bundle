@@ -353,6 +353,7 @@ def addMediaObject(mco, vurl):
     Log.Debug("Creating MediaObject for streaming with URL: " + vurl)
     return mco
 
+@route(PLUGIN_PREFIX + '/createTVChannelObject')
 def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = False, checkFiles = 0):
     Log.Debug("Creating TVChannelObject. Container: " + str(container))
     name = channel['name'] 
@@ -429,6 +430,7 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
         return mco
     return mco
 
+@route(PLUGIN_PREFIX + '/createRecordingObject')
 def createRecordingObject(recording, cproduct, cplatform, container = False):
     Log.Debug("Creating RecordingObject. Container: " + str(container))
     name = recording['disp_title']
