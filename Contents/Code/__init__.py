@@ -50,7 +50,7 @@ def MainMenu():
             oc.add(DirectoryObject(key=Callback(getRecordings, title=L('recordings')), title=L('recordings'), thumb=ICON_BOUQUETS))
         oc.add(PrefsObject(title=L('preferences')))
     else:
-        Log.Debug("Configuration error! Displaying error message: " + result['message'])
+        Log("Configuration error! Displaying error message: " + result['message'])
         oc.title1 = None
         oc.header = L('header_attention')
         oc.message = result['message']
@@ -221,29 +221,30 @@ def getChannels(title, tag=int(0)):
     json_data = getTVHeadendJson('getChannelGrid', '')
     json_epg = getEPG()
     json_services = getServices()
-    channelList = ObjectContainer(no_cache=True)
+    channel_list = ObjectContainer(no_cache=True)
 
     if json_data != False and json_epg != False and json_services != False:
-        channelList.title1 = title
-        channelList.header = None
-        channelList.message = None
+        channel_list.title1 = title
+        channel_list.header = None
+        channel_list.message = None
         for channel in sorted(json_data['entries'], key=lambda t: float(t['number'])):
             if tag > 0:
                 tags = channel['tags']
                 for tids in tags:
-                    if (tag == tids):
+                    if tag == tids:
                         Log.Debug("Got channel with tag: " + channel['name'])
                         chaninfo = getChannelInfo(channel['uuid'], channel['services'], json_epg, json_services)
-                        channelList.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
+                        channel_list.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
             else:
                 chaninfo = getChannelInfo(channel['uuid'], channel['services'], json_epg, json_services)
-                channelList.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
+                channel_list.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
     else:
-        Log.Debug("Could not create channellist! Showing error.")
-        channelList.title1 = None;
-        channelList.header = L('error')
-        channelList.message = L('error_request_failed')
-        return channelList
+        Log("Could not create channellist! Showing error.")
+        channel_list.title1 = None;
+        channel_list.header = L('error')
+        channel_list.message = L('error_request_failed')
+
+    return channel_list
 
 @route(PLUGIN_PREFIX + '/getRecordings')
 def getRecordings(title):
