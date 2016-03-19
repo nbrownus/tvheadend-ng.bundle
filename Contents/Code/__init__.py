@@ -233,11 +233,21 @@ def getChannels(title, tag=int(0)):
 				for tids in tags:
 					if (tag == tids):
 						if debug == True: Log("Got channel with tag: " + channel['name'])
-						chaninfo = getChannelInfo(channel['uuid'], channel['services'], json_epg, json_services)
-						channelList.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
+						chaninfo = getChannelInfo(channel['uuid'], channel['services'])
+						channelList.add(createTVChannelObject(
+                                channel['name'],
+                                channel['uuid'],
+                                channel['icon_public_url'],
+                                chaninfo['epg_start'],
+                                chaninfo['epg_stop'],
+                                chaninfo['epg_duration'],
+                                chaninfo['epg_title'],
+                                chaninfo['epg_description'],
+                                chaninfo['service_type'],
+                        ))
 			else:
 				chaninfo = getChannelInfo(channel['uuid'], channel['services'], json_epg, json_services)
-				channelList.add(createTVChannelObject(channel, chaninfo, Client.Product, Client.Platform))
+				channelList.add(createTVChannelObject(channel['name'], channel['uuid'], channel['icon_public_url'], chaninfo))
 	else:
 		if debug == True: Log("Could not create channellist! Showing error.")
 		channelList.title1 = None;
@@ -352,25 +362,24 @@ def addMediaObject(mco, vurl):
 	if debug == True: Log("Creating MediaObject for streaming with URL: " + vurl)
 	return mco
 
-def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = False, checkFiles = 0):
+@route(PLUGIN_PREFIX + '/createTVChannelObject')
+def createTVChannelObject(chan_name, chan_id, chan_icon, epg_start, epg_stop, epg_duration, epg_title, epg_description, service_type, container = False):
 	if debug == True: Log("Creating TVChannelObject. Container: " + str(container))
-	name = channel['name'] 
-	id = channel['uuid']
 	summary = None
 	duration = None
 
 	# Handle channel icon.
 	icon = None 
 	try:
-		if Prefs['tvheadend_channelicons'] == True and channel['icon_public_url'].startswith('imagecache'):
-			icon = 'http://%s:%s@%s:%s%s%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], channel['icon_public_url'])
+		if Prefs['tvheadend_channelicons'] == True and chan_icon.startswith('imagecache'):
+			icon = 'http://%s:%s@%s:%s%s%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], chan_icon)
 	except KeyError:
 		pass
 
 	#themovieDB
 	banner = None
 	if Prefs['tvheadend_use_themovieDB']:
-		tempArt = getArt(chaninfo['epg_title'])
+		tempArt = getArt(epg_title)
 		if tempArt['poster'] != '':
 			icon = tempArt['poster']
 			Log.Info("Setting icon to: " + str(icon))
@@ -379,53 +388,72 @@ def createTVChannelObject(channel, chaninfo, cproduct, cplatform, container = Fa
 			Log.Info("Setting banner to: " + str(banner))
 
 	# Add epg data. Otherwise leave the fields blank by default.
-	if debug == True: Log("Info for mediaobject: " + str(chaninfo))
-	if chaninfo['epg_title'] != "" and chaninfo['epg_start'] != 0 and chaninfo['epg_stop'] != 0 and chaninfo['epg_duration'] != 0:
+	if epg_title != "" and epg_start != 0 and epg_stop != 0 and epg_duration != 0:
 		if container == False:
-			name = name + " (" + chaninfo['epg_title'] + ") - (" + chaninfo['epg_start'] + " - " + chaninfo['epg_stop'] + ")"
-			summary = chaninfo['epg_title'] + "\n\n" + chaninfo['epg_description'] 
+			chan_name = chan_name + " (" + epg_title + ") - (" + epg_start + " - " + epg_stop + ")"
+			summary = epg_title + "\n\n" + epg_description
 		if container == True:
-			summary = chaninfo['epg_title'] + "\n\n" + chaninfo['epg_description'] + "\n\n" + chaninfo['epg_start'] + " - " + chaninfo['epg_stop']
-		duration = chaninfo['epg_duration']
+			summary = epg_title + "\n\n" + epg_description + "\n\n" + epg_start + " - " + epg_stop
+		duration = epg_duration
 
 	# Build streaming url.
 	url_structure = 'stream/channel'
-	url = 'http://%s:%s@%s:%s%s%s/%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], url_structure, id)
+	url = 'http://%s:%s@%s:%s%s%s/%s' % (Prefs['tvheadend_user'], Prefs['tvheadend_pass'], Prefs['tvheadend_host'], Prefs['tvheadend_web_port'], Prefs['tvheadend_web_rootpath'], url_structure, chan_id)
 
 	# Create and return MediaContainer.
-	mco = None
 	args = dict()
-	args['cproduct'] = cproduct
-	args['cplatform'] = cplatform
+	args['cproduct'] = Client.Product
+	args['cplatform'] = Client.Platform
 	args['url'] = url
-	if chaninfo['service_type'] != '2':
+	if service_type != '2':
 		if debug == True: Log("Creating media object with type: VIDEO")
-		args['key'] = Callback(createTVChannelObject, channel = channel, chaninfo = chaninfo, cproduct = cproduct, cplatform = cplatform, container = True)
-		args['rating_key'] = id
-		args['title'] = name
+		args['key'] = Callback(
+				createTVChannelObject,
+				chan_name = chan_name,
+				chan_id = chan_id,
+				chan_icon = chan_icon,
+				epg_stop = epg_stop,
+				epg_duration = epg_duration,
+				epg_title = epg_title,
+				epg_description = epg_description,
+				service_type = service_type,
+				container = True
+        )
+		args['rating_key'] = chan_id
+		args['title'] = chan_name
 		args['summary'] = summary
 		args['duration'] = duration
 		args['thumb'] = icon
 		args['art'] = banner
-		args['epg_title'] = chaninfo['epg_title']
+		args['epg_title'] = epg_title
 		mco = createMediaContainer('videoclip', args)
 	else:
 		if debug == True: Log("Creating media object with type: AUDIO")
-		args['key'] = Callback(createTVChannelObject, channel = channel, chaninfo = chaninfo, cproduct = cproduct, cplatform = cplatform, container = True)
-		args['rating_key'] = id
-		args['title'] = name
+		args['key'] = Callback(
+				createTVChannelObject,
+				chan_name = chan_name,
+				chan_id = chan_id,
+				chan_icon = chan_icon,
+				epg_stop = epg_stop,
+				epg_duration = epg_duration,
+				epg_title = epg_title,
+				epg_description = epg_description,
+				service_type = service_type,
+				container = True
+        )
+		args['rating_key'] = chan_id
+		args['title'] = chan_name
 		args['summary'] = summary
 		args['duration'] = duration
 		args['thumb'] = icon
 		args['art'] = banner
 		args['artist'] = ' '
-		args['album'] = chaninfo['epg_title']
+		args['album'] = epg_title
 		mco = createMediaContainer('audiotrack', args)
 
-	if container:
+    if container:
 		return ObjectContainer(objects = [mco])
-	else:
-		return mco
+
 	return mco
 
 def createRecordingObject(recording, cproduct, cplatform, container = False):
